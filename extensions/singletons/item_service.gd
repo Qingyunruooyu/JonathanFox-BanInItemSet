@@ -5,6 +5,9 @@ extends "res://singletons/item_service.gd"
 var baninset_bans: Dictionary = {}
 var baninset_item_ids: Dictionary = {}
 var baninset_weapon_ids: Dictionary = {}
+var baninset_cache_item_hashes: Array = []
+var baninset_cache_weapon_hashes: Array = []
+var baninset_cache_valid: bool = false
 var baninset_save_path: String = "user://jonathanfox_baninitemset.json"
 
 func _ready() -> void:
@@ -47,6 +50,18 @@ func _baninset_rebuild_flat() -> void:
 			baninset_item_ids[item_id] = true
 		for weapon_id in bucket.get("weapons", []):
 			baninset_weapon_ids[weapon_id] = true
+	baninset_cache_valid = false
+
+func _baninset_build_cache() -> void:
+	baninset_cache_item_hashes = []
+	for item_id in baninset_item_ids:
+		baninset_cache_item_hashes.append(Keys.generate_hash(item_id))
+	baninset_cache_weapon_hashes = []
+	for weapon_id in baninset_weapon_ids:
+		for weapon in get_weapons():
+			if weapon.weapon_id == weapon_id:
+				baninset_cache_weapon_hashes.append(weapon.my_id_hash)
+	baninset_cache_valid = true
 
 func baninset_save() -> void:
 	var file = File.new()
@@ -75,7 +90,10 @@ func baninset_load() -> void:
 
 func get_pool(item_tier: int, type: int) -> Array:
 	var pool = .get_pool(item_tier, type)
-	if baninset_item_ids.empty() and baninset_weapon_ids.empty():
+	if type == TierData.WEAPONS:
+		if baninset_weapon_ids.empty():
+			return pool
+	elif type == TierData.ITEMS and baninset_item_ids.empty():
 		return pool
 	var filtered_pool = []
 	for item in pool:
@@ -84,19 +102,20 @@ func get_pool(item_tier: int, type: int) -> Array:
 	return filtered_pool
 
 func _get_rand_item_for_wave(wave: int, player_index: int, type: int, args: GetRandItemForWaveArgs) -> ItemParentData:
-	if baninset_item_ids.empty() and baninset_weapon_ids.empty():
+	if type == TierData.WEAPONS and baninset_weapon_ids.empty():
 		return ._get_rand_item_for_wave(wave, player_index, type, args)
+	if type == TierData.ITEMS and baninset_item_ids.empty():
+		return ._get_rand_item_for_wave(wave, player_index, type, args)
+	if not baninset_cache_valid:
+		_baninset_build_cache()
 
 	var player_run_data = RunData.players_data[player_index]
 	var original_banned_items = player_run_data.banned_items
 	var merged_banned_items = original_banned_items.duplicate()
-	for item_id in baninset_item_ids:
-		if not merged_banned_items.has(item_id):
-			merged_banned_items.push_back(item_id)
-	for weapon_id in baninset_weapon_ids:
-		for weapon in get_weapons():
-			if weapon.weapon_id == weapon_id and not merged_banned_items.has(weapon.my_id):
-				merged_banned_items.push_back(weapon.my_id)
+	var banned_hashes: Array = baninset_cache_weapon_hashes if type == TierData.WEAPONS else baninset_cache_item_hashes
+	for id_hash in banned_hashes:
+		if not merged_banned_items.has(id_hash):
+			merged_banned_items.push_back(id_hash)
 
 	player_run_data.banned_items = merged_banned_items
 	var item = ._get_rand_item_for_wave(wave, player_index, type, args)

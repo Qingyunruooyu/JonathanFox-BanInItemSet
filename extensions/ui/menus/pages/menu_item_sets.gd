@@ -43,10 +43,6 @@ func _focus(_button) -> void:
 	if _button != null:
 		_baninset_current_set_id = _button._get_update().id
 	._focus(_button)
-
-func _process(delta):
-	if not visible:
-		return
 	_baninset_refresh_masks()
 
 func _input(event):
@@ -62,6 +58,7 @@ func _input(event):
 		var element = _baninset_find_hovered_element()
 		if element != null and element.item != null and not element.item.is_locked:
 			ItemService.baninset_toggle(_baninset_current_set_id, element.item)
+			_baninset_refresh_masks()
 
 func _baninset_find_hovered_element():
 	for inventory in _baninset_inventories():
