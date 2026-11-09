@@ -1,0 +1,15 @@
+{
+  "name": "BanInItemSet",
+  "namespace": "JonathanFox",
+  "version_number": "1.0.0",
+  "description": "在物品套组界面双击或右键道具/武器即可将其禁用（武器按整个系列禁用），禁用数据按套组以 JSON 存储。Double-click or right-click items or weapons in the item sets menu to ban them from loot and shop pools (weapons are banned as a whole family by weapon_id). Bans are stored per item set in a JSON file.",
+  "website_url": "",
+  "dependencies": [],
+  "extra": {
+    "godot": {
+      "authors": ["JonathanFox"],
+      "compatible_game_version": ["1.2.0.0"],
+      "compatible_mod_loader_version": ["6.2.0"]
+    }
+  }
+}
